@@ -89,7 +89,8 @@ bind(xsd:integer(floor((COLW - 26 - strlen(?typ) * 4.6) / 5.15)) as ?cap)
 ```
 
 The constants are measured average advance widths (5.15 px per character at 10 px, 4.6 at 9 px), not
-guesses. If a row can carry its type on the same line, the label cap must reserve room for it — getting
+guesses. This formula is also the label budget authors should write to; see
+[naming.md](naming.md). If a row can carry its type on the same line, the label cap must reserve room for it — getting
 that wrong overflows exactly the rows whose text happens to fit.
 
 For the arrow glyph, measure the font rather than eyeballing:

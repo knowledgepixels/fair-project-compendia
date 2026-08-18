@@ -45,6 +45,9 @@ sub:link      a nt:UriPlaceholder .
 # st6: activity rdfs:seeAlso ?link                  (optional, repeatable)
 ```
 
+The `title` placeholder is what ends up as the diagram entry, so give it a description that states the
+convention ([naming.md](naming.md)) — contributors otherwise paste article titles.
+
 Two details that matter in practice. Use `nt:AgentPlaceholder` for people rather than a plain URI
 field, so contributors pick a known agent instead of pasting an ORCID. And **statement order in the
 rendered form is the sort order of the statement IRIs** (`st0` < `st1` < …) unless `nt:statementOrder`

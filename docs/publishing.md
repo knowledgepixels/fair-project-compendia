@@ -111,7 +111,7 @@ permanently broken nanopub.
 3. Check emoji have no `U+FE0F` variation selector.
 4. Check labels are consistent with any other nanopub describing the same resource — two different
    labels for one IRI make view output nondeterministic, because queries pick one with `sample()` or
-   `min()`. If a second nanopub must repeat a label, repeat it *identically*; if it does not need to,
+   `min()` (see also [naming.md](naming.md)). If a second nanopub must repeat a label, repeat it *identically*; if it does not need to,
    omit it and let the original stand.
 5. After publishing, confirm the nanopub resolves on the registry and that the API serving it returns
    what you expect. Publication succeeding is not evidence that the content is right.

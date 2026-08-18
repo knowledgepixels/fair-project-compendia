@@ -65,7 +65,7 @@ hypothesis-driven, and so on — see [vocabularies.md](vocabularies.md)). Recomm
 
 Display tip: ontology labels for subclasses read awkwardly in a UI ("observational investigation").
 Rewriting `investigation` to `study` at display time gives "observational study" without touching the
-data.
+data. For the label itself, see [naming.md](naming.md).
 
 ### Evidence & Arguments
 
@@ -87,7 +87,9 @@ inferential, high-throughput and documented-statement evidence makes the layer i
 the diagram meaningful per-type icons.
 
 Keep labels short and put detail in `dct:description`. The label is what appears in the diagram, in
-breadcrumbs and in link text; a sentence-long label is unusable in all three.
+breadcrumbs and in link text; a sentence-long label is unusable in all three. Naming an evidence item
+is easy to get wrong in two opposite directions — naming the procedure, or restating the claim — so
+[naming.md](naming.md) gives a head-noun convention for it.
 
 ### Knowledge
 
@@ -99,7 +101,9 @@ even with no nanopub introducing it. Two consequences:
   graph. It is cheap, and it does **not** claim the statements are true — only that they stand in a
   generality relation.
 - Because the IRI is derived from the text, **the wording is frozen** once published. Rewording mints
-  a different IRI and orphans every link. Decide the phrasing before publishing.
+  a different IRI and orphans every link, so every relation nanopub referencing it must be superseded.
+  Decide the phrasing before publishing — [naming.md](naming.md) covers how general to go, and how far
+  is too far.
 
 Distinguish a project's own specific findings from the general statements they bear on. Specific
 findings quantify ("about 32% of linked cases were clonal in country X between 2012 and 2015");

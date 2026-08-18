@@ -56,6 +56,7 @@ Three properties of the substrate shape the whole design:
 |---|---|
 | [docs/model.md](docs/model.md) | The layers, their entity types and the relations between them |
 | [docs/vocabularies.md](docs/vocabularies.md) | Which terms to use, which to avoid, and why — including the naming of the evidence layer |
+| [docs/naming.md](docs/naming.md) | How to name entries in each layer, and what renaming costs |
 | [docs/templates.md](docs/templates.md) | The assertion templates a deployment needs, with their statement shapes |
 | [docs/views-and-actions.md](docs/views-and-actions.md) | Project-level and part-level views, property/value tables, entry vs. result actions |
 | [docs/svg-diagram.md](docs/svg-diagram.md) | The summary figure: design rules, layout algorithm, sizing, icons |
@@ -70,11 +71,13 @@ Three properties of the substrate shape the whole design:
    no evidence layer simply renders a compendium without that band.
 2. Fix the **predicate set** per layer ([docs/model.md](docs/model.md)). Most deployments reuse an
    existing project vocabulary rather than minting one.
-3. Publish the **templates** so that contributors can add entries through forms rather than by hand
+3. Agree the **naming conventions** per layer before the first entries go out
+   ([docs/naming.md](docs/naming.md)). Statement wording in particular is expensive to change later.
+4. Publish the **templates** so that contributors can add entries through forms rather than by hand
    ([docs/templates.md](docs/templates.md)).
-4. Publish the **queries and views**, and activate them on each project space
+5. Publish the **queries and views**, and activate them on each project space
    ([docs/views-and-actions.md](docs/views-and-actions.md)).
-5. Configure and run the **diagram generator**, then publish its output as an SVG view
+6. Configure and run the **diagram generator**, then publish its output as an SVG view
    ([docs/svg-diagram.md](docs/svg-diagram.md)).
 
 Read [docs/sparql-cookbook.md](docs/sparql-cookbook.md) before writing the first query. It documents
