@@ -111,9 +111,13 @@ general statements are the reusable claims other projects can also speak to. Lin
 `hycl:hasMoreGeneralMeaningThan` is what lets a compendium express **what the project contributed to
 the field** rather than merely what it measured.
 
-That contribution can be qualified from the graph itself: if no other project's finding generalises to
-a statement, this project provided its *first evidence*; if others do, it *increased* the evidence.
-Both are computable, so neither has to be asserted by hand.
+That contribution can be qualified from the graph itself. If no other project's finding generalises to
+a statement, this project provided its *first evidence*; if others do, it *increased* the evidence. A
+statement that a proof establishes is *proved* instead: deduction does not accumulate, so the evidence
+scale does not apply to it ([vocabularies.md](vocabularies.md) has the reasoning). A statement the
+project only declares `gen:isRelevantFor` itself, with nothing generalising to it, is merely
+*relevant* — the project vouches for it without having contributed evidence. All four are computable,
+so none has to be asserted by hand.
 
 ### Outputs
 
