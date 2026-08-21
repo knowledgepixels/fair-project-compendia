@@ -473,6 +473,7 @@ SVG = f"""    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} ', str({
     {arrow_up(OUT_CX, f"{YM} - 14")}
     {arrow_up(CENTER, f"{YE} - 14")}
     {arrow_up(ACT_CX, f"{YP} - 13")}
+    {arrow_up(OUT_CX, f"{YP} - 13")}
     '</svg>'"""
 
 QUERY = f"""{PREFIXES}
