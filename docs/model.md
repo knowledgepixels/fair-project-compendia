@@ -114,10 +114,13 @@ the field** rather than merely what it measured.
 That contribution can be qualified from the graph itself. If no other project's finding generalises to
 a statement, this project provided its *first evidence*; if others do, it *increased* the evidence. A
 statement that a proof establishes is *proved* instead: deduction does not accumulate, so the evidence
-scale does not apply to it ([vocabularies.md](vocabularies.md) has the reasoning). A statement the
-project only declares `gen:isRelevantFor` itself, with nothing generalising to it, is merely
-*relevant* — the project vouches for it without having contributed evidence. All four are computable,
-so none has to be asserted by hand.
+scale does not apply to it ([vocabularies.md](vocabularies.md) has the reasoning). All three are
+computable, so none has to be asserted by hand.
+
+A project links its own specific findings to itself as well, with `gen:isRelevantFor`, so reaching the
+project is not what makes a statement belong here. Standing above something is: the knowledge layer
+holds the statements that generalise another statement, or that a proof establishes. That is a
+property of the statement itself, not of who chose to link it.
 
 ### Outputs
 

@@ -103,8 +103,7 @@ ACT_ICON = ('if(contains(?typeSFX, "observational"), "\U0001F441",'
             ' if(contains(?typeSFX, "surveillance"), "\U0001F4E1",'
             ' if(contains(?typeSFX, "trial"), "\U0001F489", "\U0001F9EA")))')
 KNO_ICON = ('if(?typeSFX = "proved", "\U0001F4D0",'
-            ' if(?typeSFX = "relevant", "\U0001F4CC",'
-            ' if(?typeSFX = "first evidence", "\U0001F331", "\U0001F4C8")))')
+            ' if(?typeSFX = "first evidence", "\U0001F331", "\U0001F4C8"))')
 OUT_RANK = ('if(?rawSFX = "article", 0, if(?rawSFX = "dataset", 1, if(?rawSFX = "software", 2,'
             ' if(?rawSFX = "method", 3, if(?rawSFX = "dmp", 4, if(?rawSFX = "presentation", 5,'
             ' if(?rawSFX = "blog-post", 6, 7)))))))')
@@ -204,10 +203,21 @@ def items(s, item, with_meta=True, member=True):
         # is the one disjunct that needs no study and no coalesce guard -- which is why
         # the study block is optional: a project may declare a statement relevant before
         # it has published any activity at all.
+        # Reaching the project is not enough to belong here, though. Projects declare
+        # their own specific findings relevant too, and this zone is the general ones, so
+        # a second required block asks the item to stand above something: it generalises
+        # a statement, or a proof establishes it. That is what separates "clonal spread
+        # dominated in Dutch hospitals between 2012 and 2015" from the reusable claim
+        # above it, and it is intrinsic to the item rather than depending on whether
+        # someone happened to hang a finding off it.
         core = f"""{MEMBERS if member else ""}
 {valid('rg' + s, pi=False, member=member)}
           graph ?arg{s} {{
             {item} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>|gen:isRelevantFor) ?anchor{s} .
+          }}
+{valid('gn' + s, pi=False, member=member)}
+          graph ?agn{s} {{
+            {item} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?gen{s} .
           }}
           optional {{
 {valid('sg' + s, pi=False, member=member)}
@@ -242,13 +252,8 @@ def items(s, item, with_meta=True, member=True):
 {valid('pv' + s, pi=False, member=False)}
             graph ?apv{s} {{ ?anyproof{s} <{PROVES}> {item} . }}
           }}
-          optional {{
-{valid('gg' + s, pi=False, member=False)}
-            graph ?agg{s} {{ {item} hycl:hasMoreGeneralMeaningThan ?gfnd{s} . }}
-          }}
           bind(if(bound(?anyproof{s}), "proved",
-                  if(!bound(?gfnd{s}), "relevant",
-                     if(bound(?oproj{s}), "increased evidence", "first evidence"))) as ?type{s})
+                  if(bound(?oproj{s}), "increased evidence", "first evidence")) as ?type{s})
           bind(0 as ?rr{s})
           bind({ic} as ?icon{s})"""
         return core + "\n" + (meta if with_meta else f"          bind(0 as ?rr{s})")
@@ -320,6 +325,7 @@ def others(s):
               "la", "lf", "lq", "lp", "fnd", "studyg", "asg", "afg", "arg",
               # knowledge-zone support chain and evidence-zone base type
               "anchor", "sup", "via", "pst", "base", "aeg", "aqg", "ahg", "mid",
+              "gen", "agn", "npgn", "pkgn", "ixgn", "sxgn",
               "nphg", "pkhg", "ixhg", "sxhg",
               "npeg", "pkeg", "ixeg", "sxeg", "npqg", "pkqg", "ixqg", "sxqg",
               "nps", "pks", "ixs", "sxs", "npsg", "pksg", "ixsg", "sxsg",
