@@ -33,7 +33,6 @@ Every zone truncates its label to the column width minus that row's type text, s
 nothing can overflow; the full text stays in the <title> tooltip.
 """
 
-import re
 
 # ---------------------------------------------------------------- CONFIG ----
 # The project vocabulary this deployment uses. Only these IRIs are
@@ -182,6 +181,16 @@ DECODE = (f'replace(replace(replace(replace(replace(replace(strafter(str(ITEM), 
 # lose its "%2C" tail to the comma rule before the percent itself is put back.
 
 
+def study(s, var, member=True):
+    """`var` is one of the project's own activities. Chained inside the optional that binds it
+    rather than matched once into a free variable the filter then compares against: a free
+    variable multiplies every candidate row by the project's activity count, which is what made
+    this zone time out on a space with 74 of them."""
+    return f"""{valid(s, pi=False, member=member)}
+            graph ?a{s} {{ {var} a obo:OBI_0000066 ; dct:isPartOf ?_project_multi_iri . }}
+"""
+
+
 def subtype(s, item, root, prefix):
     """The item's own subclass under `root`, and that subclass's label. Both the zone's type
     and its sort key read this, so the ranking copy has to bind it too, not just the meta."""
@@ -252,29 +261,25 @@ def items(s, item, with_meta=True, member=True):
             {item} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?gen{s} .
           }}
           optional {{
-{valid('sg' + s, pi=False, member=member)}
-            graph ?asg{s} {{ ?studyg{s} a obo:OBI_0000066 ; dct:isPartOf ?_project_multi_iri . }}
-          }}
-          optional {{
 {valid('fg' + s, pi=False, member=member)}
             graph ?afg{s} {{ ?anchor{s} a hycl:AIDA-Sentence ; cito:obtainsSupportFrom ?sup{s} . }}
-          }}
+{study('sg' + s, '?sup' + s, member)}          }}
           optional {{
 {valid('hg' + s, pi=False, member=member)}
             graph ?ahg{s} {{ ?anchor{s} cito:obtainsSupportFrom ?mid{s} . }}
 {valid('eg' + s, pi=False, member=member)}
             graph ?aeg{s} {{ ?mid{s} prov:wasGeneratedBy ?via{s} . }}
-          }}
+{study('vg' + s, '?via' + s, member)}          }}
           optional {{
 {valid('qg' + s, pi=False, member=member)}
             graph ?aqg{s} {{ ?anchor{s} prov:wasGeneratedBy ?pst{s} . }}
-          }}
+{study('pg' + s, '?pst' + s, member)}          }}
           optional {{
 {valid('u1' + s, pi=False, member=member)}
             graph ?au1{s} {{ ?anchor{s} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?up{s} . }}
 {valid('u2' + s, pi=False, member=member)}
             graph ?au2{s} {{ ?up{s} cito:obtainsSupportFrom ?upsup{s} . }}
-          }}
+{study('ug' + s, '?upsup' + s, member)}          }}
           optional {{
 {valid('u3' + s, pi=False, member=member)}
             graph ?au3{s} {{ ?anchor{s} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?upr{s} . }}
@@ -282,9 +287,8 @@ def items(s, item, with_meta=True, member=True):
             graph ?au4{s} {{ ?upr{s} gen:isRelevantFor ?_project_multi_iri . }}
           }}
           filter(strstarts(str({item}), "{AIDA}"))
-          filter(?anchor{s} = ?_project_multi_iri || coalesce(?sup{s} = ?studyg{s}, false)
-                 || coalesce(?via{s} = ?studyg{s}, false) || coalesce(?pst{s} = ?studyg{s}, false)
-                 || coalesce(?upsup{s} = ?studyg{s}, false) || bound(?upr{s}))"""
+          filter(?anchor{s} = ?_project_multi_iri || bound(?sup{s}) || bound(?via{s})
+                 || bound(?pst{s}) || bound(?upsup{s}) || bound(?upr{s}))"""
         meta = f"""          bind({DECODE.replace('ITEM', item)} as ?label{s})
           optional {{
 {valid('pv' + s, pi=False, member=False)}
@@ -346,14 +350,17 @@ def items(s, item, with_meta=True, member=True):
     return core + "\n" + tail + f"          bind({rank} as ?rr{s})"
 
 
-def others(s):
+def others(s, member=False):
     """The same items, renamed, used only to rank each entry."""
-    t = items(s, "?o" + s, with_meta=False, member=False)
+    t = items(s, "?o" + s, with_meta=False, member=member)
     for v in ("np", "a", "pi", "pk", "ix", "sx", "rel", "raw", "study", "as", "sub", "subl",
               "la", "lf", "lq", "lp", "fnd", "studyg", "asg", "afg", "arg",
               # knowledge-zone support chain and evidence-zone base type
               "anchor", "sup", "via", "pst", "base", "aeg", "aqg", "ahg", "mid",
               "gen", "agn", "npgn", "pkgn", "ixgn", "sxgn",
+              # the per-path activity checks that replaced the free study variable
+              "avg", "npvg", "pkvg", "ixvg", "sxvg", "apg", "nppg", "pkpg", "ixpg", "sxpg",
+              "aug", "npug", "pkug", "ixug", "sxug",
               # the extra generalisation hop the reachability walk takes
               "up", "upsup", "upr",
               "au1", "npu1", "pku1", "ixu1", "sxu1", "au2", "npu2", "pku2", "ixu2", "sxu2",
@@ -394,30 +401,42 @@ def zone(s):
         wrap = ""
         label_expr = f'if(strlen(?lbl{s}) > ?cap{s}, concat(substr(?lbl{s}, 1, ?cap{s} - 1), "…"), ?lbl{s})'
 
-    # the ranking copy carries its own pubkey variables; each must belong to a space member,
-    # and each is bound()-guarded because a UNION arm binds only its own
-    oth = others(s)
-    keys = sorted(set(re.findall(r"\?opk\w*", oth)))
-    mcheck = "".join(f"\n              && (!bound({k}) || contains(?mpk{s}, {k}))" for k in keys)
+    # The ranking copy sits in its own select rather than inline. Inlined, the planner re-runs
+    # the whole pattern once per entry -- 17 knowledge entries against a 1.5s pattern is 25s and
+    # a gateway timeout, and it is what made a 330-person space crawl. As a subquery it is
+    # evaluated once and joined. It does its own member filtering too, which is why the outer
+    # per-key bound() guards are gone: they existed only to apply the outer key list to inline
+    # patterns.
+    # It is a plain join with a bind guard rather than an OPTIONAL with a filter, because RDF4J
+    # scopes a FILTER that follows a subquery to that subquery alone: the outer ?rrank and ?iri
+    # are unbound there, every row survives, and every entry lands on the same index. A BIND
+    # placed inside the OPTIONAL loses scope the same way; only in the enclosing group do both
+    # sides resolve. The join is safe as a required one because every entry appears in its own
+    # ranking copy, so the subquery is non-empty whenever the zone has anything to show.
+    oth = f"""          {{
+            select distinct ?o{s} ?orr{s} where {{
+              values ?_project_multi_iri {{}}
+{"" if s == "kno" else MEMBERS}
+{others(s, member=True)}
+            }}
+          }}"""
 
     return f"""  {{
     select (group_concat(distinct ?box{s}; separator="") as ?boxes{s}) (count(*) as ?n{s}) where {{
       {{
-        select ?iri{s} ?lbl{s} ?ico{s} ?typ{s} ?rrank{s} (count(distinct ?o{s}) as ?iy{s}) where {{
+        select ?iri{s} ?lbl{s} ?ico{s} ?typ{s} ?rrank{s} (count(distinct ?lt{s}) as ?iy{s}) where {{
           values ?_project_multi_iri {{}}
           {{
             select ?iri{s} (min(?label{s}) as ?lbl{s}) (min(?icon{s}) as ?ico{s})
-                (group_concat(distinct ?type{s}; separator=", ") as ?typ{s}) (min(?rr{s}) as ?rrank{s})
-                (sample(?memberPubkeys) as ?mpk{s}) where {{
+                (group_concat(distinct ?type{s}; separator=", ") as ?typ{s}) (min(?rr{s}) as ?rrank{s}) where {{
               values ?_project_multi_iri {{}}
 {"" if s == "kno" else MEMBERS}
 {items(s, '?iri' + s)}
             }} group by ?iri{s}
           }}
-          optional {{
 {oth}
-            filter(concat(str(?orr{s}), "|", str(?o{s})) < concat(str(?rrank{s}), "|", str(?iri{s})){mcheck})
-          }}
+          bind(if(concat(str(?orr{s}), "|", str(?o{s})) < concat(str(?rrank{s}), "|", str(?iri{s})),
+                  ?o{s}, ?none{s}) as ?lt{s})
         }} group by ?iri{s} ?lbl{s} ?ico{s} ?typ{s} ?rrank{s}
       }}
       bind((?iy{s} - floor(?iy{s} / {cols}) * {cols}) * {w + COLGAP} as ?bx{s})
