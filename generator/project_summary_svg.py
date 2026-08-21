@@ -174,8 +174,10 @@ KNO_CAP1 = KNO_CAP2
 # arrow placement and the ranking joins all derive from the values above.
 
 AIDA = "http://purl.org/aida/"     # knowledge statements are AIDA sentences, i.e. they ARE their URI
-DECODE = (f'replace(replace(replace(replace(replace(strafter(str(ITEM), "{AIDA}"),'
-          ' "[+]", " "), "%2C", ","), "%3A", ":"), "%28", "("), "%29", ")")')
+DECODE = (f'replace(replace(replace(replace(replace(replace(strafter(str(ITEM), "{AIDA}"),'
+          ' "[+]", " "), "%2C", ","), "%3A", ":"), "%28", "("), "%29", ")"), "%25", "%")')
+# %25 is decoded last: a literal "%2C" in the sentence encodes to "%252C", which must not
+# lose its "%2C" tail to the comma rule before the percent itself is put back.
 
 
 def items(s, item, with_meta=True, member=True):
