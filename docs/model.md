@@ -111,11 +111,17 @@ general statements are the reusable claims other projects can also speak to. Lin
 `hycl:hasMoreGeneralMeaningThan` is what lets a compendium express **what the project contributed to
 the field** rather than merely what it measured.
 
-That contribution can be qualified from the graph itself. If no other project's finding generalises to
-a statement, this project provided its *first evidence*; if others do, it *increased* the evidence. A
-statement that a proof establishes is *proved* instead: deduction does not accumulate, so the evidence
-scale does not apply to it ([vocabularies.md](vocabularies.md) has the reasoning). All three are
-computable, so none has to be asserted by hand.
+That contribution can be qualified from the graph itself. A statement the project's findings bear on
+is *supported*; one that a proof establishes is *proved* instead, since deduction does not accumulate
+and the evidence scale never applied to it ([vocabularies.md](vocabularies.md) has the reasoning).
+Both are computable, so neither has to be asserted by hand.
+
+The evidence scale itself is held back for now. It distinguished *first evidence* — no other project's
+finding generalises to the statement — from *increased evidence*, where one does. The distinction is
+sound but premature: no statement on the network has ever had findings from two projects, so every row
+would read "first evidence", which is the strongest available claim asserted purely because nobody
+else has linked yet. A single neutral label says only what is actually known. Restore the split once
+projects genuinely meet on the same statements.
 
 A project links its own specific findings to itself as well, with `gen:isRelevantFor`, so reaching the
 project is not what makes a statement belong here. Standing above something is: the knowledge layer

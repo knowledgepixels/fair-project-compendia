@@ -102,8 +102,9 @@ EV_ICON = ('if(?typeSFX = "proof", "\U0001F4D0",'
 ACT_ICON = ('if(contains(?typeSFX, "observational"), "\U0001F441",'
             ' if(contains(?typeSFX, "surveillance"), "\U0001F4E1",'
             ' if(contains(?typeSFX, "trial"), "\U0001F489", "\U0001F9EA")))')
-KNO_ICON = ('if(?typeSFX = "proved", "\U0001F4D0",'
-            ' if(?typeSFX = "first evidence", "\U0001F331", "\U0001F4C8"))')
+KNO_ICON = 'if(?typeSFX = "proved", "\U0001F4D0", "\U0001F4A1")'
+EV_TYPE = f'coalesce(?sublSFX, if(?baseSFX = {PROOF_TYPE}, "proof", "evidence"))'
+ACT_TYPE = 'coalesce(replace(?sublSFX, "investigation", "study"), "study")'
 OUT_RANK = ('if(?rawSFX = "article", 0, if(?rawSFX = "dataset", 1, if(?rawSFX = "software", 2,'
             ' if(?rawSFX = "method", 3, if(?rawSFX = "dmp", 4, if(?rawSFX = "presentation", 5,'
             ' if(?rawSFX = "blog-post", 6, 7)))))))')
@@ -150,14 +151,16 @@ def _col(cols, gap_total=None):
 # zone -> column width, type expr, icon expr, columns, caption icon
 ZCFG = {
     "kno": (FULLCOL, None, KNO_ICON, 1, "\U0001F4A1"),
-    "ev": (_col(2), None, EV_ICON, 2, "\u2696"),
+    "ev": (_col(2), EV_TYPE, EV_ICON, 2, "\u2696"),
     # the middle pair shares the content width with an arrow channel between the boxes
-    "act": ((CONTENT - ARROWGAP_) // 2 - 2 * PADX_, None, ACT_ICON, 1, "\U0001F52C"),
+    "act": ((CONTENT - ARROWGAP_) // 2 - 2 * PADX_, ACT_TYPE, ACT_ICON, 1, "\U0001F52C"),
     "out": ((CONTENT - ARROWGAP_) // 2 - 2 * PADX_, 'replace(?rawSFX, "-", " ")', OUT_ICON, 1, "\U0001F4E6"),
     "ppl": (_col(4), PPL_TYPE, '"\U0001F464"', 4, "\U0001F465"),
     "inst": (_col(2), INST_TYPE, INST_ICON, 2, "\U0001F3DB"),
 }
-RANKS = {"ppl": PPL_RANK, "inst": INST_RANK, "out": OUT_RANK}
+RANKS = {"ppl": PPL_RANK, "inst": INST_RANK, "out": OUT_RANK,
+         # these two sort on the type text itself, so the key is a string, not a number
+         "ev": EV_TYPE, "act": ACT_TYPE}
 PITCH = {}                   # every zone uses DEFAULT_PITCH now
 DEFAULT_PITCH = 20
 COLGAP, PADX = COLGAP_, PADX_
@@ -165,7 +168,7 @@ COLGAP, PADX = COLGAP_, PADX_
 # follows the LAST line, so only that line reserves room for it
 # both lines reserve room for the type, since a sentence that fits on one line
 # keeps its type on that same line
-KNO_CAP2 = int((FULLCOL - 26 - len("increased evidence") * TYPE_CW) / LABEL_CW)
+KNO_CAP2 = int((FULLCOL - 26 - len("supported") * TYPE_CW) / LABEL_CW)
 KNO_CAP1 = KNO_CAP2
 
 # -------------------------------------------------------------- /CONFIG ----
@@ -177,6 +180,23 @@ DECODE = (f'replace(replace(replace(replace(replace(replace(strafter(str(ITEM), 
           ' "[+]", " "), "%2C", ","), "%3A", ":"), "%28", "("), "%29", ")"), "%25", "%")')
 # %25 is decoded last: a literal "%2C" in the sentence encodes to "%252C", which must not
 # lose its "%2C" tail to the comma rule before the percent itself is put back.
+
+
+def subtype(s, item, root, prefix):
+    """The item's own subclass under `root`, and that subclass's label. Both the zone's type
+    and its sort key read this, so the ranking copy has to bind it too, not just the meta."""
+    return f"""          optional {{
+            graph ?a{s} {{
+              {item} a ?sub{s} .
+              filter(?sub{s} != {root} && strstarts(str(?sub{s}), "{prefix}"))
+            }}
+            graph ?pi{s} {{ ?sub{s} rdfs:label ?subl{s} }}
+          }}
+"""
+
+
+SUBTYPE_OF = {"ev": ("obo:ECO_0000000", "http://purl.obolibrary.org/obo/ECO_"),
+              "act": ("obo:OBI_0000066", "http://purl.obolibrary.org/obo/OBI_")}
 
 
 def items(s, item, with_meta=True, member=True):
@@ -265,20 +285,12 @@ def items(s, item, with_meta=True, member=True):
           filter(?anchor{s} = ?_project_multi_iri || coalesce(?sup{s} = ?studyg{s}, false)
                  || coalesce(?via{s} = ?studyg{s}, false) || coalesce(?pst{s} = ?studyg{s}, false)
                  || coalesce(?upsup{s} = ?studyg{s}, false) || bound(?upr{s}))"""
-        meta = f"""          optional {{
-{valid('og' + s, pi=False, member=False)}
-            graph ?aog{s} {{ {item} hycl:hasMoreGeneralMeaningThan ?ofnd{s} . }}
-{valid('pg' + s, pi=False, member=False)}
-            graph ?apg{s} {{ ?ofnd{s} (skos:related|gen:isRelevantFor) ?oproj{s} . }}
-            filter(?oproj{s} != ?_project_multi_iri)
-          }}
-          bind({DECODE.replace('ITEM', item)} as ?label{s})
+        meta = f"""          bind({DECODE.replace('ITEM', item)} as ?label{s})
           optional {{
 {valid('pv' + s, pi=False, member=False)}
             graph ?apv{s} {{ ?anyproof{s} <{PROVES}> {item} . }}
           }}
-          bind(if(bound(?anyproof{s}), "proved",
-                  if(bound(?oproj{s}), "increased evidence", "first evidence")) as ?type{s})
+          bind(if(bound(?anyproof{s}), "proved", "supported") as ?type{s})
           bind(0 as ?rr{s})
           bind({ic} as ?icon{s})"""
         return core + "\n" + (meta if with_meta else f"          bind(0 as ?rr{s})")
@@ -294,16 +306,9 @@ def items(s, item, with_meta=True, member=True):
             values ?base{s} {{ obo:ECO_0000000 {PROOF_TYPE} }}
           }}"""
         meta = f"""          optional {{ graph ?a{s} {{ {item} rdfs:label ?la{s} }} }}
-          optional {{
-            graph ?a{s} {{
-              {item} a ?sub{s} .
-              filter(?sub{s} != obo:ECO_0000000 && strstarts(str(?sub{s}), "http://purl.obolibrary.org/obo/ECO_"))
-            }}
-            graph ?pi{s} {{ ?sub{s} rdfs:label ?subl{s} }}
-          }}
-          bind(coalesce(?la{s}, replace(str({item}), "^.*[/#]", "")) as ?label{s})
-          bind(coalesce(?subl{s}, if(?base{s} = {PROOF_TYPE}, "proof", "evidence")) as ?type{s})
-          bind(0 as ?rr{s})
+{subtype(s, item, "obo:ECO_0000000", "http://purl.obolibrary.org/obo/ECO_")}          bind(coalesce(?la{s}, replace(str({item}), "^.*[/#]", "")) as ?label{s})
+          bind({ty} as ?type{s})
+          bind({rank} as ?rr{s})
           bind({ic} as ?icon{s})"""
     elif s == "act":
         core = f"""{valid(s, member=member)}
@@ -311,16 +316,9 @@ def items(s, item, with_meta=True, member=True):
             {PAT['act'].replace('ITEM', item)}
           }}"""
         meta = f"""          optional {{ graph ?a{s} {{ {item} rdfs:label ?la{s} }} }}
-          optional {{
-            graph ?a{s} {{
-              {item} a ?sub{s} .
-              filter(?sub{s} != obo:OBI_0000066 && strstarts(str(?sub{s}), "http://purl.obolibrary.org/obo/OBI_"))
-            }}
-            graph ?pi{s} {{ ?sub{s} rdfs:label ?subl{s} }}
-          }}
-          bind(coalesce(?la{s}, replace(str({item}), "^.*[/#]", "")) as ?label{s})
-          bind(coalesce(replace(?subl{s}, "investigation", "study"), "study") as ?type{s})
-          bind(0 as ?rr{s})
+{subtype(s, item, "obo:OBI_0000066", "http://purl.obolibrary.org/obo/OBI_")}          bind(coalesce(?la{s}, replace(str({item}), "^.*[/#]", "")) as ?label{s})
+          bind({ty} as ?type{s})
+          bind({rank} as ?rr{s})
           bind({ic} as ?icon{s})"""
     else:
         core = f"""{valid(s, member=member)}
@@ -339,7 +337,12 @@ def items(s, item, with_meta=True, member=True):
     if with_meta:
         return core + "\n" + meta
     # ranking copy: only the sort key is needed, but "out" still needs ?raw for its icon expr
-    tail = (f'          bind(strafter(str(?rel{s}), "{FF}has-") as ?raw{s})\n' if s == "out" else "")
+    if s == "out":
+        tail = f'          bind(strafter(str(?rel{s}), "{FF}has-") as ?raw{s})\n'
+    elif s in SUBTYPE_OF:
+        tail = subtype(s, item, *SUBTYPE_OF[s])
+    else:
+        tail = ""
     return core + "\n" + tail + f"          bind({rank} as ?rr{s})"
 
 
