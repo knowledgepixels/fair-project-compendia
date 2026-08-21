@@ -122,6 +122,15 @@ project is not what makes a statement belong here. Standing above something is: 
 holds the statements that generalise another statement, or that a proof establishes. That is a
 property of the statement itself, not of who chose to link it.
 
+Belonging still requires reaching the project, and that walk has to go one step further than the
+statement's own anchor. A statement standing **two** generality steps above the findings — one that
+generalises another general statement — has an anchor that is itself general, carrying neither a
+support link nor `gen:isRelevantFor`, so a test applied only to the anchor never fires and the
+statement silently disappears. Those are exactly the broadest claims, the ones that best express what
+the project contributed, so losing them defeats the layer. Each step is a separate nanopub in its own
+graph and a transitive path cannot span graphs while keeping the per-nanopub validity checks, so the
+walk is unrolled to a fixed depth: a hierarchy deeper than three levels needs another step added.
+
 ### Outputs
 
 Model each output kind with its own predicate rather than a generic "has output" plus a type, because

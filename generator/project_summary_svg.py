@@ -210,6 +210,18 @@ def items(s, item, with_meta=True, member=True):
         # dominated in Dutch hospitals between 2012 and 2015" from the reusable claim
         # above it, and it is intrinsic to the item rather than depending on whether
         # someone happened to hang a finding off it.
+        # The reachability walk goes one generalisation step further than the anchor, or a
+        # statement standing two steps above the findings drops out -- exactly the broadest
+        # claims, the ones that best say what the project contributed. Its anchor is itself
+        # a general statement, which carries neither a support link nor gen:isRelevantFor,
+        # so testing only the anchor never fires. The two extra blocks re-run the same two
+        # tests one level down: the deeper statement obtains support from a study of the
+        # project, or declares itself relevant for it. Both are siblings keyed on ?anchor,
+        # which the core always binds, so neither can cross-product; the two graphs inside
+        # each are chained sequentially rather than nested, for the RDF4J reason above.
+        # Bounded at one extra hop rather than a transitive path because every hop is a
+        # separate nanopub in its own graph, and a * path cannot span graphs while keeping
+        # the per-nanopub validity checks -- a deeper hierarchy needs another pair here.
         core = f"""{MEMBERS if member else ""}
 {valid('rg' + s, pi=False, member=member)}
           graph ?arg{s} {{
@@ -237,9 +249,22 @@ def items(s, item, with_meta=True, member=True):
 {valid('qg' + s, pi=False, member=member)}
             graph ?aqg{s} {{ ?anchor{s} prov:wasGeneratedBy ?pst{s} . }}
           }}
+          optional {{
+{valid('u1' + s, pi=False, member=member)}
+            graph ?au1{s} {{ ?anchor{s} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?up{s} . }}
+{valid('u2' + s, pi=False, member=member)}
+            graph ?au2{s} {{ ?up{s} cito:obtainsSupportFrom ?upsup{s} . }}
+          }}
+          optional {{
+{valid('u3' + s, pi=False, member=member)}
+            graph ?au3{s} {{ ?anchor{s} (hycl:hasMoreGeneralMeaningThan|^<{PROVES}>) ?upr{s} . }}
+{valid('u4' + s, pi=False, member=member)}
+            graph ?au4{s} {{ ?upr{s} gen:isRelevantFor ?_project_multi_iri . }}
+          }}
           filter(strstarts(str({item}), "{AIDA}"))
           filter(?anchor{s} = ?_project_multi_iri || coalesce(?sup{s} = ?studyg{s}, false)
-                 || coalesce(?via{s} = ?studyg{s}, false) || coalesce(?pst{s} = ?studyg{s}, false))"""
+                 || coalesce(?via{s} = ?studyg{s}, false) || coalesce(?pst{s} = ?studyg{s}, false)
+                 || coalesce(?upsup{s} = ?studyg{s}, false) || bound(?upr{s}))"""
         meta = f"""          optional {{
 {valid('og' + s, pi=False, member=False)}
             graph ?aog{s} {{ {item} hycl:hasMoreGeneralMeaningThan ?ofnd{s} . }}
@@ -326,6 +351,10 @@ def others(s):
               # knowledge-zone support chain and evidence-zone base type
               "anchor", "sup", "via", "pst", "base", "aeg", "aqg", "ahg", "mid",
               "gen", "agn", "npgn", "pkgn", "ixgn", "sxgn",
+              # the extra generalisation hop the reachability walk takes
+              "up", "upsup", "upr",
+              "au1", "npu1", "pku1", "ixu1", "sxu1", "au2", "npu2", "pku2", "ixu2", "sxu2",
+              "au3", "npu3", "pku3", "ixu3", "sxu3", "au4", "npu4", "pku4", "ixu4", "sxu4",
               "nphg", "pkhg", "ixhg", "sxhg",
               "npeg", "pkeg", "ixeg", "sxeg", "npqg", "pkqg", "ixqg", "sxqg",
               "nps", "pks", "ixs", "sxs", "npsg", "pksg", "ixsg", "sxsg",
