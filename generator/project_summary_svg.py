@@ -102,10 +102,10 @@ OUT_RANK = ('if(?rawSFX = "article", 0, if(?rawSFX = "dataset", 1, if(?rawSFX = 
             ' if(?rawSFX = "method", 3, if(?rawSFX = "dmp", 4, if(?rawSFX = "presentation", 5,'
             ' if(?rawSFX = "blog-post", 6, 7)))))))')
 PPL_TYPE = ('if(?relSFX = ff:has-principal-investigator, "PI",'
-            ' if(?relSFX = gen:hasProjectLead, "project lead",'
+            ' if(?relSFX in (gen:hasProjectLead, ff:has-project-leader), "project lead",'
             ' if(?relSFX = ff:has-data-steward, "data steward", "participant")))')
 PPL_RANK = ('if(?relSFX = ff:has-principal-investigator, 0,'
-            ' if(?relSFX = gen:hasProjectLead, 1,'
+            ' if(?relSFX in (gen:hasProjectLead, ff:has-project-leader), 1,'
             ' if(?relSFX = ff:has-data-steward, 2, 3)))')
 INST_TYPE = ('if(?relSFX = ff:has-lead-institution, "lead institution",'
              ' if(?relSFX = ff:has-partner-institution, "partner", "funder"))')
@@ -119,7 +119,7 @@ PAT = {
             " ff:has-software ff:has-method ff:has-dmp ff:has-presentation ff:has-blog-post"
             " ff:has-media-coverage ff:has-social-post ff:has-podcast ff:has-discussion }"),
     "ppl": ("?_project_multi_iri ?relSFX ITEM .\n            values ?relSFX { ff:has-principal-investigator"
-            " ff:has-participant ff:has-data-steward gen:hasProjectLead }"),
+            " ff:has-participant ff:has-data-steward gen:hasProjectLead ff:has-project-leader }"),
     "inst": ("?_project_multi_iri ?relSFX ITEM .\n            values ?relSFX { ff:has-lead-institution"
              " ff:has-partner-institution ff:has-funder }"),
 }
