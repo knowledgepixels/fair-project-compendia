@@ -426,8 +426,9 @@ HE = f"({rows('ev', '?nev')} * {DEFAULT_PITCH} + 14)"
 HM = f"((if(?nact > ?nout, ?nact, ?nout)) * {DEFAULT_PITCH} + 14)"
 HP = f"({rows('ppl', '?nppl')} * {DEFAULT_PITCH} + 14)"
 HI = f"({rows('inst', '?ninst')} * {DEFAULT_PITCH} + 14)"
-YK = "26"
-YE = f"(26 + {HK} + 28)"
+YK0 = "26"          # top of the Knowledge zone when no title header is drawn
+YK = "?hd"          # …and with one: the header block binds ?hd, falling back to YK0
+YE = f"({YK} + {HK} + 28)"
 YM = f"({YE} + {HE} + 28)"
 YP = f"({YM} + {HM} + 26)"
 YI = f"({YP} + {HP} + 26)"
@@ -455,7 +456,51 @@ def zone_svg(s, box_x, y, h, cap_text, cap_x=None):
     {group(box_x + PADX, f"{y} + 6", '?boxes' + s)}""")
 
 
-ARROW, ARROW_SIZE = "\u27A4", 22
+# ---- optional title header -------------------------------------------------
+# A project page reads better with the project's own name above the diagram, so the
+# query pulls the newest member-signed Space definition for the project and renders its
+# label plus its date range as two centred text lines. Everything below the header is
+# offset by ?hd rather than a constant: with no title ?hd falls back to the plain 26 the
+# zones would otherwise start at, so a deployment whose projects are not Spaces (or whose
+# Space carries no label) gets exactly the headerless layout and pays nothing for it.
+# The block binds ?stitle/?sdates/?hd/?theader/?dheader; the SVG template consumes the
+# last three. Its own member-pubkey service call uses ?memberPubkeysHd so it cannot
+# collide with the per-zone ?memberPubkeys inside the zone subqueries.
+HEADER = """  optional {
+    {
+      select ?slbl ?ssd ?sed where {
+        values ?_project_multi_iri {}
+""" + ("\n" + MEMBERS).replace("?memberPubkeys)", "?memberPubkeysHd)").replace(
+    "\n          ", "\n        ").lstrip("\n") + """
+        graph npa:graph {
+          ?npsp np:hasAssertion ?asp ;
+            np:hasPublicationInfo ?pisp ;
+            npa:hasValidSignatureForPublicKeyHash ?pksp .
+          filter not exists { ?ixsp npx:invalidates ?npsp ; npa:hasValidSignatureForPublicKeyHash ?pksp . }
+          filter not exists { ?sxsp npx:supersedes ?npsp . }
+        }
+        filter(contains(?memberPubkeysHd, ?pksp))
+        graph ?asp {
+          ?_project_multi_iri a gen:Space ; rdfs:label ?slbl .
+          optional { ?_project_multi_iri <http://schema.org/startDate>|<https://schema.org/startDate> ?ssd }
+          optional { ?_project_multi_iri <http://schema.org/endDate>|<https://schema.org/endDate> ?sed }
+        }
+        graph ?pisp { ?npsp dct:created ?crsp }
+      } order by desc(?crsp) limit 1
+    }
+  }
+  bind(replace(replace(replace(coalesce(?slbl, ""), "&", "&amp;"), "<", "&lt;"), ">", "&gt;") as ?stitle)
+  bind(coalesce(substr(str(?ssd), 1, 10), "") as ?ssd1)
+  bind(coalesce(substr(str(?sed), 1, 10), "") as ?sed1)
+  bind(if(?ssd1 != "" && ?sed1 != "", concat(?ssd1, " \u2013 ", ?sed1), concat(?ssd1, ?sed1)) as ?sdates)
+  bind(if(?stitle = "", HDY0, if(?sdates = "", 50, 66)) as ?hd)
+  bind(if(?stitle = "", "", concat('<text x="CX" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#111">', ?stitle, '</text>')) as ?theader)
+  bind(if(?stitle = "" || ?sdates = "", "", concat('<text x="CX" y="32" text-anchor="middle" font-size="10" fill="#666">', ?sdates, '</text>')) as ?dheader)"""
+
+
+HEADER = HEADER.replace("CX", str(CENTER)).replace("HDY0", YK0)
+
+ARROW, ARROW_SIZE = "\u27A4", 30
 ARROW_NUDGE = round(0.315 * ARROW_SIZE)   # U+27A4 ink centre sits 0.315em above the baseline                     # black rightwards arrowhead, rendered as text
 ACT_CX = COLS["act"] + bw("act") // 2
 OUT_CX = COLS["out"] + bw("out") // 2
@@ -477,6 +522,7 @@ def arrow_up(x, y):
 
 SVG = f"""    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} ', str({TOTAL}),
       '" width="{int(W * SCALE)}" height="', str(round(({TOTAL}) * 8 / 5)), '" font-family="Noto Emoji, Inter, Verdana, Helvetica, sans-serif">',
+    ?theader, ?dheader,
     {zone_svg('kno', CENTER - bw('kno') // 2, YK, HK, "Knowledge", CENTER)}
     {zone_svg('ev', CENTER - bw('ev') // 2, YE, HE, "Evidence &amp; Arguments", CENTER)}
     {zone_svg('act', COLS['act'], YM, HM, "Activities")}
@@ -501,6 +547,7 @@ where {{
 {zone('out')}
 {zone('ppl')}
 {zone('inst')}
+{HEADER}
 }}"""
 
 if __name__ == "__main__":

@@ -101,7 +101,8 @@ f = ImageFont.truetype('…/DejaVuSans.ttf', 100)
 f.getmetrics(), f.getbbox('➤')     # → ink 0.84em long, 0.65em thick, centred 0.315em above baseline
 ```
 
-At `font-size` 22 that is 18.5 units of ink in a 28-unit gap. The 0.315em figure also sets the placement
+At `font-size` 30 that is 25.2 units of ink in a 28-unit gap — deliberately close-fitting, because a
+smaller arrow reads as a stray character rather than a connector. The 0.315em figure also sets the placement
 nudge: `rotate(-90 x y)` keeps vertical centring exact (rotation preserves the baseline midpoint) but
 maps the glyph's ascent onto the horizontal axis, so it lands left of the anchor — compensate with
 `x + round(0.315 * font_size)`.
@@ -135,6 +136,15 @@ and are easy to violate:
 - the ranking copy of the item pattern must be a **flat** pattern inside the `OPTIONAL`, not a
   sub-`SELECT`;
 - if a layer is a `UNION` of two sources, its membership `SERVICE` must go **inside each arm**.
+
+An optional **title header** sits above the topmost layer: a further `OPTIONAL` picks the newest
+member-signed Space definition for the project and binds its label and date range, which the outer
+`SELECT` renders as two centred lines. The zones start at `?hd` rather than a constant, and `?hd` falls
+back to the same top offset the headerless layout would use — so a deployment whose projects are not
+Spaces, or whose Space carries no label, gets the old geometry exactly and pays nothing for the block.
+Keep its member-pubkey `SERVICE` under a distinct variable name (`?memberPubkeysHd`): the per-layer
+subqueries each bind `?memberPubkeys` in their own scope, and reusing the name across the outer scope
+silently constrains them all.
 
 ## Authoring rules for the markup
 
